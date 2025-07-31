@@ -2,6 +2,7 @@
 import React from "react";
 
 interface SalaryRecord {
+  _id: string;
   email: string;
   salaryMonth: string;
   salaryAmount: number;
@@ -38,14 +39,14 @@ interface SalaryTableProps {
             {/* <th className="py-3 px-4">Advances</th> */}
             <th className="py-3 px-4">Description</th>
             {/* <th className="py-3 px-4">Date Received</th> */}
-            {/* <th className="py-3 px-4">Status</th> */}
+            <th className="py-3 px-4">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 bg-white">
           {salaryData.map((row, index) => (
             <tr
               key={index}
-              className="hover:bg-[#fef9ee] transition-colors duration-200"
+              className="hover:bg-[#fef9ee] transition-colors duration-200 cursor-pointer"
                onClick={() => onRowClick(row)}
             >
               <td className="py-3 px-4">{row.email}</td>
@@ -57,7 +58,7 @@ interface SalaryTableProps {
               {/* <td className="py-3 px-4">
                 {new Date(row.dateReceived).toLocaleDateString()}
               </td> */}
-              {/* <td className="py-3 px-4 capitalize">
+              <td className="py-3 px-4 capitalize">
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-semibold ${
                     row.status === "paid"
@@ -67,7 +68,7 @@ interface SalaryTableProps {
                 >
                   {row.status}
                 </span>
-              </td> */}
+              </td>
             </tr>
           ))}
         </tbody>

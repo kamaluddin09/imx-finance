@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 interface SalaryRecord {
-  id: string;
+_id: string;
   email: string;
   salaryMonth: string;
   salaryAmount: number;
@@ -13,123 +13,233 @@ interface SalaryRecord {
   status: string;
 }
 
-interface SalaryTableProps {
-  salaryData: SalaryRecord[];
-  onRowClick: (user: SalaryRecord) => void;
+interface UserPanelProps {
+  user: SalaryRecord;
+  onClose: () => void;
 }
 
-const SalaryTable: React.FC<SalaryTableProps> = ({ salaryData, onRowClick }) => {
+const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
+  const [isVisible, setIsVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState<Partial<SalaryRecord>>({});
+  const [editedUser, setEditedUser] = useState<SalaryRecord>(user);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditedUser((prev) => ({
-      ...prev,
-      [name]: name === "salaryAmount" ? Number(value) : value,
-    }));
-  };
+  // Show panel on mount
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
-  const handleEditClick = (user: SalaryRecord) => {
+  // Sync state with user prop and validate ID
+  useEffect(() => {
+    console.log("User prop received:", user);
+    if (!user?._id) {
+      console.warn("⚠️ User object is missing 'id'. Update will fail.");
+    }
     setEditedUser(user);
-    setIsEditing(true);
+  }, [user]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
   };
 
-  const handleUpdate = async (id: string) => {
-    try {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    const numericFields = ["salaryAmount", "netSalary", "advances"];
+
+    setEditedUser((prev) => {
+      const newValue = numericFields.includes(name)
+        ? value === "" ? "" : Number(value)
+        : value;
+
+      return {
+        ...prev,
+        [name]: newValue,
+        id: prev._id, // Explicitly preserve ID
+      };
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }try {
+      console.log("🔁 Updating user ID:", editedUser._id);
       const response = await axios.put(
-        `http://localhost:9999/api/salaries/updateUser/${id}`,
+        `http://localhost:9999/api/salaries/${editedUser._id}`,
         editedUser
       );
-      console.log("Updated:", response.data);
+      console.log("✅ Updated:", response.data);
       alert("Salary record updated!");
       setIsEditing(false);
     } catch (err) {
-      console.error("Update failed", err);
+      console.error("❌ Update failed", err);
       alert("Failed to update");
     }
   };
 
   return (
-    <div className="w-[80%] mx-auto my-5">
-      <table className="w-full text-sm text-left rtl:text-right text-gray-500 shadow-md rounded-md overflow-hidden">
-        <thead className="text-xs text-white uppercase bg-gray-800">
-          <tr>
-            <th className="px-6 py-3">Email</th>
-            <th className="px-6 py-3">Month</th>
-            <th className="px-6 py-3">Salary</th>
-            <th className="px-6 py-3">Net Salary</th>
-            <th className="px-6 py-3">Advances</th>
-            <th className="px-6 py-3">Description</th>
-            <th className="px-6 py-3">Date Received</th>
-            <th className="px-6 py-3">Status</th>
-            <th className="px-6 py-3">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {salaryData.map((user) => (
-            <tr
-              key={user.id}
-              className="bg-white border-b hover:bg-gray-100 cursor-pointer"
-              onClick={() => onRowClick(user)}
+    <div className="fixed inset-0 flex justify-end z-50">
+      <div
+        className="absolute inset-0 bg-gray-50/50 transition-opacity duration-300"
+        onClick={handleClose}
+      ></div>
+
+      <div
+        className={`relative bg-white w-full max-w-md h-full shadow-xl transform transition-transform duration-300 ease-in-out ${
+          isVisible ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="p-6 overflow-y-auto h-full">
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl"
+          >
+            &times;
+          </button>
+
+          <h2 className="text-xl font-bold mb-6">Salary Details</h2>
+
+          <table className="w-full text-sm text-left border border-gray-200">
+            <thead>
+              <tr className="bg-gray-100 text-gray-600 uppercase text-xs">
+                <th className="py-3 px-4 font-semibold w-1/3">Field</th>
+                <th className="py-3 px-4 font-semibold">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th className="py-3 px-4 font-medium">Email</th>
+                <td className="py-3 px-4">{editedUser.email}</td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Month</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <input
+                      name="salaryMonth"
+                      value={editedUser.salaryMonth}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    />
+                  ) : (
+                    editedUser.salaryMonth
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Amount</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <input
+                      name="salaryAmount"
+                      type="number"
+                      value={editedUser.salaryAmount}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    />
+                  ) : (
+                    `₹${editedUser.salaryAmount}`
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Net Salary</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <input
+                      name="netSalary"
+                      type="number"
+                      value={editedUser.netSalary}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    />
+                  ) : (
+                    `₹${editedUser.netSalary}`
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Advances</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <input
+                      name="advances"
+                      type="string"
+                      value={editedUser.advances ?? ""}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    />
+                  ) : (
+                    editedUser.advances ?? "-"
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Description</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <input
+                      name="description"
+                      value={editedUser.description ?? ""}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    />
+                  ) : (
+                    editedUser.description ?? "-"
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Date Received</th>
+                <td className="py-3 px-4">
+                  {new Date(editedUser.dateReceived).toLocaleDateString()}
+                </td>
+              </tr>
+              <tr>
+                <th className="py-3 px-4 font-medium">Status</th>
+                <td className="py-3 px-4">
+                  {isEditing ? (
+                    <select
+                      name="status"
+                      value={editedUser.status}
+                      onChange={handleChange}
+                      className="border px-2 py-1 rounded w-full"
+                    >
+                      <option value="paid">Paid</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
+                        editedUser.status === "paid"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {editedUser.status}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="mt-4 flex justify-end text-white">
+            <button
+              onClick={handleUpdate}
+              className="py-2 px-7 rounded bg-green-600 hover:bg-green-300"
             >
-              <td className="px-6 py-4">{user.email}</td>
-              <td className="px-6 py-4">
-                {isEditing && editedUser.id === user.id ? (
-                  <input
-                    name="salaryMonth"
-                    value={editedUser.salaryMonth || ""}
-                    onChange={handleChange}
-                    className="border px-2 py-1"
-                  />
-                ) : (
-                  user.salaryMonth
-                )}
-              </td>
-              <td className="px-6 py-4">
-                {isEditing && editedUser.id === user.id ? (
-                  <input
-                    name="salaryAmount"
-                    type="number"
-                    value={editedUser.salaryAmount || ""}
-                    onChange={handleChange}
-                    className="border px-2 py-1"
-                  />
-                ) : (
-                  user.salaryAmount
-                )}
-              </td>
-              <td className="px-6 py-4">{user.netSalary}</td>
-              <td className="px-6 py-4">{user.advances || "-"}</td>
-              <td className="px-6 py-4">{user.description || "-"}</td>
-              <td className="px-6 py-4">{user.dateReceived}</td>
-              <td className="px-6 py-4">{user.status}</td>
-              <td className="px-6 py-4 text-white">
-                {isEditing && editedUser.id === user.id ? (
-                  <button
-                    onClick={() => handleUpdate(user.id)}
-                    className="py-1 px-4 bg-green-600 rounded hover:bg-green-400"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(user);
-                    }}
-                    className="py-1 px-4 bg-blue-600 rounded hover:bg-blue-400"
-                  >
-                    Edit
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              {isEditing ? "Save" : "Update"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default SalaryTable;
+export default UserModel;
