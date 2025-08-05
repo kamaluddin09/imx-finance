@@ -1,17 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import type { SalaryRecord } from "../types/Types";
+import { updateSalaryById } from "../API/salaryApi"; 
 
-interface SalaryRecord {
-_id: string;
-  email: string;
-  salaryMonth: string;
-  salaryAmount: number;
-  netSalary: number;
-  advances?: number;
-  description?: string;
-  dateReceived: string;
-  status: string;
-}
 
 interface UserPanelProps {
   user: SalaryRecord;
@@ -32,7 +22,7 @@ const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
   useEffect(() => {
     console.log("User prop received:", user);
     if (!user?._id) {
-      console.warn("⚠️ User object is missing 'id'. Update will fail.");
+      console.warn(" User object is missing 'id'. Update will fail.");
     }
     setEditedUser(user);
   }, [user]);
@@ -41,7 +31,6 @@ const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
     setIsVisible(false);
     setTimeout(onClose, 300);
   };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -51,7 +40,9 @@ const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
 
     setEditedUser((prev) => {
       const newValue = numericFields.includes(name)
-        ? value === "" ? "" : Number(value)
+        ? value === ""
+          ? ""
+          : Number(value)
         : value;
 
       return {
@@ -62,24 +53,22 @@ const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
     });
   };
 
-  const handleUpdate = async () => {
-    if (!isEditing) {
-      setIsEditing(true);
-      return;
-    }try {
-      console.log("🔁 Updating user ID:", editedUser._id);
-      const response = await axios.put(
-        `http://localhost:9999/api/salaries/${editedUser._id}`,
-        editedUser
-      );
-      console.log("✅ Updated:", response.data);
-      alert("Salary record updated!");
-      setIsEditing(false);
-    } catch (err) {
-      console.error("❌ Update failed", err);
-      alert("Failed to update");
-    }
-  };
+ const handleUpdate = async () => {
+  if (!isEditing) {
+    setIsEditing(true);
+    return;
+  }
+  try {
+    console.log("🔁 Updating user ID:", editedUser._id);
+    const response = await updateSalaryById(editedUser._id!, editedUser);
+    console.log(" Updated:", response.data);
+    alert("Salary record updated!");
+    setIsEditing(false);
+  } catch (err) {
+    console.error(" Update failed", err);
+    alert("Failed to update");
+  }
+};
 
   return (
     <div className="fixed inset-0 flex justify-end z-50">
@@ -119,12 +108,31 @@ const UserModel: React.FC<UserPanelProps> = ({ user, onClose }) => {
                 <th className="py-3 px-4 font-medium">Month</th>
                 <td className="py-3 px-4">
                   {isEditing ? (
-                    <input
+                    <select
                       name="salaryMonth"
                       value={editedUser.salaryMonth}
                       onChange={handleChange}
                       className="border px-2 py-1 rounded w-full"
-                    />
+                    >
+                      {[
+                        "January",
+                        "February",
+                        "March",
+                        "April",
+                        "May",
+                        "June",
+                        "July",
+                        "August",
+                        "September",
+                        "October",
+                        "November",
+                        "December",
+                      ].map((month) => (
+                        <option key={month} value={month}>
+                          {month}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     editedUser.salaryMonth
                   )}

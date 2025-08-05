@@ -2,34 +2,43 @@ import React, { useEffect, useState } from "react";
 import { uploadSalaryFile, getSalaryData } from "../API/salaryApi";
 import SalaryTable from "../Components/SalaryTable";
 import UserModal from "../Components/UserModal";
+import SalaryFilter from "../Components/SalaryFilter";
+import { Upload, FileSpreadsheet, CheckCircle, Loader2 } from "lucide-react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import type{ SalaryRecord } from "../types/Types";
 
-const finance: React.FC = () => {
+const Finance: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState("");
-  const [salaryData, setSalaryData] = useState<any[]>([]);
+  const [salaryData, setSalaryData] = useState<SalaryRecord[]>([]);
+  const [filteredData, setFilteredData] = useState<SalaryRecord[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SalaryRecord | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (uploadedFile) {
       setFile(uploadedFile);
-      setMessage("");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return setMessage("Please select a file");
+    if (!file) {
+      toast.warn("Please select a file.");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      const data = await uploadSalaryFile(file); //post API
-      setMessage(data.message || "File uploaded successfully");
+      const data = await uploadSalaryFile(file);
+      toast.success(data.message || "File uploaded successfully");
       setFile(null);
+      fetchSalaryData(); // Refresh
     } catch (error) {
       console.error(error);
-      setMessage("Failed to upload file");
+      toast.error("Failed to upload file");
     } finally {
       setIsUploading(false);
     }
@@ -37,106 +46,163 @@ const finance: React.FC = () => {
 
   const fetchSalaryData = async () => {
     try {
-      const result = await getSalaryData(); //GET API
+      const result = await getSalaryData();
       setSalaryData(result);
+      setFilteredData(result);
     } catch (error) {
-      console.error("Error fetching data", error);
+      console.error("Error fetching salary data", error);
+      toast.error("Failed to fetch salary data.");
     }
   };
 
   useEffect(() => {
     fetchSalaryData();
   }, []);
+
+  const handleFilter = (field: keyof SalaryRecord, query: string) => {
+    const lowerQuery = query.toLowerCase();
+    const filtered = salaryData.filter((item) =>
+      item[field]?.toString().toLowerCase().includes(lowerQuery)
+    );
+    setFilteredData(filtered);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-6">
+    <div className="min-h-screen py-1 px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <ToastContainer position="top-right" autoClose={3000} />
 
-      <div className="p-8 bg-[#f0f2f5] "> {/* Light grey background for the whole page */}
-      <div className="max-w-6xl mx-auto">
-        {/* Header Section */}
-        <header
-          className="w-full h-32 rounded-lg p-6 flex items-center justify-between shadow-lg"
-          style={{ background: 'linear-gradient(to right, #8A2BE2, #4B0082)' }} // Violet to Indigo gradient
-        >
-          <div>
-            <h1 className="text-5xl font-bold text-white mb-2">Finance Portal</h1>
-            <p className="text-white text-lg opacity-80">Salary & Payroll Management</p>
-          </div>
-          <div className="text-right text-white text-sm opacity-70">
-            {/* <p>Powered by MX</p> */}
-            <p>Secure & Smart</p>
-          </div>
-        </header>
-
-        {/* Cards Section */}
-        
-      </div>
-    </div>
-
-      {/* <div className="max-w-6xl mx-auto bg-white p-8 rounded-2xl shadow-xl space-y-6"> */}
-      <div className="bg-gray-100 p-6 flex items-center justify-center">
-        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-3xl">
-          {/* <h1 className="text-3xl font-extrabold text-[#f1ab27] mb-8 text-center tracking-wide">
-            Upload Salary Excel
-          </h1> */}
-
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col lg:flex-row items-center gap-4"
-          >
-            {/* File Input */}
-            <label className="w-full lg:flex-1">
-              <input
-                type="file"
-                accept=".xls,.xlsx"
-                onChange={handleFileChange}
-                className="w-full text-sm text-gray-700
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-lg file:border-0
-          file:bg-purple-50 file:text-purple-700
-          hover:file:bg-purple-100 file:cursor-pointer
-          transition-all duration-200 ease-in-out"
-              />
-            </label>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isUploading}
-              className="bg-[#f1ab27] text-white py-2 px-6 rounded-lg
-        hover:bg-[#d19115] transition-all duration-200 ease-in-out
-        disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading ? "Uploading..." : "Upload"}
-            </button>
-          </form>
-
-          {/* Success Message */}
-          {message && (
-            <div className="mt-6 text-center text-sm text-green-600 font-medium">
-              {message}
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-700"></div>
+        {/* <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div> */}
+        <div className="relative max-w-full mx-auto  py-6 ">
+          <header className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-6">
+              <FileSpreadsheet className="w-10 h-10 text-white" />
             </div>
-          )}
+            <h1 className="text-6xl font-bold text-white mb-4 tracking-tight">
+              Finance Portal
+            </h1>
+            <p className="text-xl text-white/90 font-medium max-w-2xl mx-auto leading-relaxed">
+              Streamlined Salary & Payroll Management System
+            </p>
+            <div className="mt-8 flex justify-center">
+              <div className="h-1 w-24 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"></div>
+            </div>
+          </header>
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Upload Section */}
+      <div className="relative mt-4 px-4 pb-8">
+        <div className="max-w-xl mx-auto">
+          <div className="bg-white/80 backdrop-blur-xl shadow-xl rounded-2xl border border-white/20 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 p-4 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-purple-600" />
+                Upload Excel File
+              </h2>
+              <p className="text-sm text-gray-600">
+                Select your payroll Excel file to process salary data
+              </p>
+            </div>
+
+            <div className="p-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* File Input */}
+                <div className="relative">
+                  <label className="block">
+                    <div
+                      className={`
+                  relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300 ease-in-out
+                  ${
+                    file
+                      ? "border-green-400 bg-green-50/50"
+                      : "border-gray-300 hover:border-purple-400 hover:bg-purple-50/30"
+                  }
+                `}
+                    >
+                      <input
+                        type="file"
+                        accept=".xls,.xlsx"
+                        onChange={handleFileChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+
+                      <div className="flex flex-col items-center gap-2">
+                        {file ? (
+                          <CheckCircle className="w-6 h-6 text-green-500" />
+                        ) : (
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-md flex items-center justify-center">
+                            <Upload className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {file ? file.name : "Choose file or drag & drop"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            .xls and .xlsx files up to 10MB
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-center">
+                  <button
+                    type="submit"
+                    disabled={isUploading || !file}
+                    className={`
+                px-6 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-300 ease-in-out
+                ${
+                  isUploading || !file
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 hover:scale-105 hover:shadow-md active:scale-95"
+                }
+              `}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Upload
+                        </>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table and Filter */}
       {salaryData.length > 0 && (
-        <div className="overflow-auto rounded-lg shadow-md">
+        <div className="max-w-6xl mx-auto px-2">
+          <SalaryFilter onFilter={handleFilter} />
           <SalaryTable
-            salaryData={salaryData}
-            onRowClick={
-              (user) => setSelectedUser({ ...user, id: user._id }) // ✅ Map _id → id here
-            }
+            salaryData={filteredData}
+            onRowClick={(user) => setSelectedUser(user)}
           />
         </div>
       )}
-      {/* User Details Modal */}
+
+      {/* User Modal */}
       {selectedUser && (
         <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
-      {/* </div> */}
     </div>
   );
 };
 
-export default finance;
+export default Finance;

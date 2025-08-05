@@ -1,4 +1,5 @@
 export interface SalaryRecord {
+  _id: string;
   email: string;
   salaryMonth: string;
   salaryAmount: number;

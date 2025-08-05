@@ -1,17 +1,7 @@
 // components/SalaryTable.tsx
 import React from "react";
+import type { SalaryRecord } from "../types/Types";
 
-interface SalaryRecord {
-  _id: string;
-  email: string;
-  salaryMonth: string;
-  salaryAmount: number;
-  netSalary: number;
-  advances?: number;
-  description?: string;
-  dateReceived: string;
-  status: string;
-}
 
 interface SalaryTableProps {
   salaryData: SalaryRecord[];
@@ -19,8 +9,10 @@ interface SalaryTableProps {
 }
 
 // const SalaryTable: React.FC<SalaryTableProps> = ({ salaryData }) => {
-    const SalaryTable: React.FC<SalaryTableProps> = ({ salaryData, onRowClick }) => {
-
+const SalaryTable: React.FC<SalaryTableProps> = ({
+  salaryData,
+  onRowClick,
+}) => {
   if (salaryData.length === 0) return null;
 
   return (
@@ -35,10 +27,10 @@ interface SalaryTableProps {
             <th className="py-3 px-4">Email</th>
             <th className="py-3 px-4">Month</th>
             <th className="py-3 px-4">Amount</th>
-            {/* <th className="py-3 px-4">Net Salary</th> */}
-            {/* <th className="py-3 px-4">Advances</th> */}
+            <th className="py-3 px-4">Net Salary</th>
+            <th className="py-3 px-4">Advances</th>
             <th className="py-3 px-4">Description</th>
-            {/* <th className="py-3 px-4">Date Received</th> */}
+            <th className="py-3 px-4">Date Received</th>
             <th className="py-3 px-4">Status</th>
           </tr>
         </thead>
@@ -47,23 +39,23 @@ interface SalaryTableProps {
             <tr
               key={index}
               className="hover:bg-[#fef9ee] transition-colors duration-200 cursor-pointer"
-               onClick={() => onRowClick(row)}
+              onClick={() => onRowClick(row)}
             >
               <td className="py-3 px-4">{row.email}</td>
               <td className="py-3 px-4">{row.salaryMonth}</td>
               <td className="py-3 px-4">₹{row.salaryAmount}</td>
-              {/* <td className="py-3 px-4">₹{row.netSalary}</td> */}
-              {/* <td className="py-3 px-4">{row.advances || "-"}</td> */}
+              <td className="py-3 px-4">₹{row.netSalary}</td>
+              <td className="py-3 px-4">{row.advances || "-"}</td>
               <td className="py-3 px-4">{row.description || "-"}</td>
-              {/* <td className="py-3 px-4">
+              <td className="py-3 px-4">
                 {new Date(row.dateReceived).toLocaleDateString()}
-              </td> */}
+              </td>
               <td className="py-3 px-4 capitalize">
                 <span
-                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
                     row.status === "paid"
                       ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
                   }`}
                 >
                   {row.status}
